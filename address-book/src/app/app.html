@@ -1,0 +1,271 @@
+<main class="container">
+  <h1>Address Book</h1>
+
+  <section class="card">
+    <h2>Add Contact</h2>
+    <form (ngSubmit)="addContact(contactForm)" #contactForm="ngForm" novalidate>
+      <div class="grid">
+        <label>
+          Name
+          <input
+            type="text"
+            name="name"
+            [(ngModel)]="newContact.name"
+            #nameModel="ngModel"
+            required
+            minlength="2"
+            maxlength="50"
+            pattern="^[A-Za-z][A-Za-z\s'.-]{1,49}$"
+          />
+          @if (nameModel.invalid && (nameModel.touched || contactForm.submitted)) {
+            <small class="error">Enter 2 to 50 letters (spaces, apostrophe, dot and hyphen allowed).</small>
+          }
+        </label>
+        <label>
+          Phone
+          <input
+            type="text"
+            name="phone"
+            [(ngModel)]="newContact.phone"
+            #phoneModel="ngModel"
+            required
+            minlength="7"
+            maxlength="20"
+            pattern="^[+()0-9\s-]{7,20}$"
+          />
+          @if (phoneModel.invalid && (phoneModel.touched || contactForm.submitted)) {
+            <small class="error">Use 7 to 15 digits (you may include +, spaces, parentheses, or hyphens).</small>
+          }
+          @if (isDuplicatePhoneInput) {
+            <small class="error">This phone number already exists.</small>
+          }
+        </label>
+        <label>
+          Email
+          <input
+            type="email"
+            name="email"
+            [(ngModel)]="newContact.email"
+            #emailModel="ngModel"
+            required
+            maxlength="100"
+          />
+          @if (emailModel.invalid && (emailModel.touched || contactForm.submitted)) {
+            <small class="error">Enter a valid email address.</small>
+          }
+          @if (isDuplicateEmailInput) {
+            <small class="error">This email already exists.</small>
+          }
+        </label>
+      </div>
+      @if (formError) {
+        <p class="status error-text">{{ formError }}</p>
+      }
+      <button
+        type="submit"
+        [disabled]="contactForm.invalid || isDuplicateEmailInput || isDuplicatePhoneInput"
+      >
+        Add Contact
+      </button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Search Contact by Name</h2>
+    <input
+      type="text"
+      placeholder="Type a name..."
+      [(ngModel)]="searchTerm"
+      (ngModelChange)="onSearchChange()"
+      name="searchTerm"
+      maxlength="50"
+    />
+  </section>
+
+  <section class="card">
+    <h2>Delete Contact by ID</h2>
+    <div class="delete-row">
+      <input
+        type="number"
+        min="1"
+        placeholder="Enter ID"
+        [(ngModel)]="deleteId"
+        name="deleteId"
+      />
+      <button type="button" (click)="deleteById()">Delete by ID</button>
+    </div>
+    @if (deleteError) {
+      <p class="status error-text">{{ deleteError }}</p>
+    }
+  </section>
+
+  <section class="card">
+    <h2>Contacts</h2>
+    <div class="toolbar">
+      <div class="sort-row">
+        <span>Sort by:</span>
+        <button type="button" class="secondary-btn" (click)="setSort('id')">
+          ID
+          <span class="sort-icon" aria-hidden="true">
+            @if (sortField === 'id') {
+              {{ sortDirection === 'asc' ? '↑' : '↓' }}
+            } @else {
+              ↕
+            }
+          </span>
+        </button>
+        <button type="button" class="secondary-btn" (click)="setSort('name')">
+          Name
+          <span class="sort-icon" aria-hidden="true">
+            @if (sortField === 'name') {
+              {{ sortDirection === 'asc' ? '↑' : '↓' }}
+            } @else {
+              ↕
+            }
+          </span>
+        </button>
+        <button type="button" class="secondary-btn" (click)="setSort('email')">
+          Email
+          <span class="sort-icon" aria-hidden="true">
+            @if (sortField === 'email') {
+              {{ sortDirection === 'asc' ? '↑' : '↓' }}
+            } @else {
+              ↕
+            }
+          </span>
+        </button>
+      </div>
+      <p class="result-info">Showing {{ paginatedContacts.length }} of {{ sortedContacts.length }} result(s)</p>
+    </div>
+    @if (filteredContacts.length === 0) {
+      <p class="empty">No contacts found.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (contact of paginatedContacts; track contact.id) {
+            <tr>
+              <td>{{ contact.id }}</td>
+              <td>{{ contact.name }}</td>
+              <td>{{ contact.phone }}</td>
+              <td>{{ contact.email }}</td>
+              <td>
+                <div class="actions-row">
+                  <button type="button" class="secondary-btn" (click)="startEdit(contact)">Edit</button>
+                  <button type="button" class="danger-btn" (click)="deleteContact(contact.id)">Delete</button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (totalPages > 1) {
+        <div class="pagination-row">
+          <button type="button" class="secondary-btn" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">
+            Previous
+          </button>
+          @for (page of pageNumbers; track page) {
+            <button
+              type="button"
+              [class.page-active]="page === currentPage"
+              class="secondary-btn"
+              (click)="setPage(page)"
+            >
+              {{ page }}
+            </button>
+          }
+          <button
+            type="button"
+            class="secondary-btn"
+            [disabled]="currentPage === totalPages"
+            (click)="setPage(currentPage + 1)"
+          >
+            Next
+          </button>
+        </div>
+      }
+    }
+  </section>
+
+  @if (editingId !== null) {
+    <section class="card">
+      <h2>Edit Contact #{{ editingId }}</h2>
+      <form (ngSubmit)="updateContact(editForm)" #editForm="ngForm" novalidate>
+        <div class="grid">
+          <label>
+            Name
+            <input
+              type="text"
+              name="editName"
+              [(ngModel)]="editContact.name"
+              #editNameModel="ngModel"
+              required
+              minlength="2"
+              maxlength="50"
+              pattern="^[A-Za-z][A-Za-z\s'.-]{1,49}$"
+            />
+            @if (editNameModel.invalid && (editNameModel.touched || editForm.submitted)) {
+              <small class="error">Enter 2 to 50 letters (spaces, apostrophe, dot and hyphen allowed).</small>
+            }
+          </label>
+          <label>
+            Phone
+            <input
+              type="text"
+              name="editPhone"
+              [(ngModel)]="editContact.phone"
+              #editPhoneModel="ngModel"
+              required
+              minlength="7"
+              maxlength="20"
+              pattern="^[+()0-9\s-]{7,20}$"
+            />
+            @if (editPhoneModel.invalid && (editPhoneModel.touched || editForm.submitted)) {
+              <small class="error">Use 7 to 15 digits (you may include +, spaces, parentheses, or hyphens).</small>
+            }
+            @if (isDuplicatePhoneEditInput) {
+              <small class="error">This phone number already exists.</small>
+            }
+          </label>
+          <label>
+            Email
+            <input
+              type="email"
+              name="editEmail"
+              [(ngModel)]="editContact.email"
+              #editEmailModel="ngModel"
+              required
+              maxlength="100"
+            />
+            @if (editEmailModel.invalid && (editEmailModel.touched || editForm.submitted)) {
+              <small class="error">Enter a valid email address.</small>
+            }
+            @if (isDuplicateEmailEditInput) {
+              <small class="error">This email already exists.</small>
+            }
+          </label>
+        </div>
+        @if (editError) {
+          <p class="status error-text">{{ editError }}</p>
+        }
+        <div class="actions-row">
+          <button
+            type="submit"
+            [disabled]="editForm.invalid || isDuplicateEmailEditInput || isDuplicatePhoneEditInput"
+          >
+            Save Changes
+          </button>
+          <button type="button" class="secondary-btn" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </form>
+    </section>
+  }
+</main>
