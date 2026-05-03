@@ -192,14 +192,37 @@ button:disabled {
 .pagination-row {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
   gap: 0.5rem;
-  margin-top: 0.8rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #edf1f6;
 }
 
 .page-active {
   background: #0a84ff;
   color: #fff;
   border-color: #0a84ff;
+  box-shadow: 0 4px 12px rgba(10, 132, 255, 0.2);
+}
+
+.pagination-row .secondary-btn {
+  min-width: 2.4rem;
+  padding-inline: 0.75rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.pagination-row .secondary-btn:disabled {
+  opacity: 0.5;
+  background: #eef1f5;
+  color: #7a8595;
+  border-color: #d8dee7;
+}
+
+.pagination-row .secondary-btn:not(.page-active):not(:disabled):hover {
+  background: #dfe7f1;
 }
 
 table {
